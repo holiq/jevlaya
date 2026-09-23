@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import threading
 import warnings
 from typing import Any, Literal
@@ -60,10 +61,15 @@ class LayaAdapter:
         preload: bool = False,
         device: str | None = None,
     ) -> None:
-        chosen_variant = variant or "base"
-        resolved_model = model_name or LAYA_CHECKPOINTS.get(
-            chosen_variant, LAYA_CHECKPOINTS["base"]
+        env_variant = os.environ.get("LAYA_VARIANT")
+        valid_env = env_variant if env_variant in ("base", "multilingual", "typed") else None
+        chosen_variant = variant or valid_env or "base"
+        resolved_model = (
+            model_name
+            or os.environ.get("LAYA_MODEL")
+            or LAYA_CHECKPOINTS.get(chosen_variant, LAYA_CHECKPOINTS["base"])
         )
+        resolved_device = device or os.environ.get("LAYA_DEVICE")
         context_window = 1024 if chosen_variant == "multilingual" else 512
 
         self.model = resolved_model
@@ -71,7 +77,7 @@ class LayaAdapter:
         self.capabilities = LayaCapabilities(context_window=context_window)
         self._router = router
         self._preload = preload
-        self._device = device
+        self._device = resolved_device
         self._init_lock = threading.Lock()
 
     @property

@@ -235,3 +235,21 @@ def test_laya_checkpoint_variants() -> None:
     assert typed.model == "convaiinnovations/laya-typed-decisions"
     assert typed.variant == "typed"
     assert typed.capabilities.context_window == 512
+
+
+def test_laya_environment_variables(monkeypatch: pytest.MonkeyPatch) -> None:
+    """LayaAdapter reads fallback configuration from environment variables."""
+    monkeypatch.setenv("LAYA_VARIANT", "multilingual")
+    adapter = LayaAdapter()
+    assert adapter.variant == "multilingual"
+    assert adapter.model == "convaiinnovations/laya-multilingual"
+    assert adapter.capabilities.context_window == 1024
+
+    monkeypatch.setenv("LAYA_MODEL", "custom-org/my-model")
+    adapter2 = LayaAdapter()
+    assert adapter2.model == "custom-org/my-model"
+
+    monkeypatch.setenv("LAYA_DEVICE", "cuda")
+    adapter3 = LayaAdapter()
+    assert adapter3._device == "cuda"
+

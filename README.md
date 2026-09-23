@@ -148,8 +148,11 @@ uv sync --extra server
 # Start server with default Mock provider on port 8000
 uv run jevlaya serve
 
-# Start server backed by local Laya model
+# Start server backed by local Laya model (default: base)
 uv run jevlaya serve --provider laya --port 8000
+
+# Start server backed by multilingual Laya model (100+ languages including Indonesian)
+uv run jevlaya serve --provider laya --laya-variant multilingual
 
 # Start server backed by hosted Jev (OpenRouter)
 OPENROUTER_API_KEY="sk-or-..." uv run jevlaya serve --provider jev --port 8000
@@ -157,19 +160,29 @@ OPENROUTER_API_KEY="sk-or-..." uv run jevlaya serve --provider jev --port 8000
 
 #### Run with Docker / Docker Compose
 
+Jevlaya provides two Docker image targets:
+- **`gateway` (default / slim, ~180MB)**: Fast, lightweight image for `mock` and hosted `jev` (OpenRouter) providers.
+- **`full` (ML / local inference, ~2.5GB)**: Includes PyTorch and Hugging Face dependencies for local `laya` model execution.
+
 ```bash
-# Option A: One-command launch with Docker Compose
+# Option A: One-command launch with Docker Compose (default slim gateway)
 docker compose up -d
 
-# Option B: Build and run standard Docker container
+# Option B: Run standard slim container (mock or jev)
 docker build -t jevlaya:latest .
-docker run -d -p 8000:8000 --name jevlaya jevlaya:latest
-
-# Run with hosted Jev provider via environment variables:
 docker run -d -p 8000:8000 \
   -e JEVLAYA_PROVIDER=jev \
   -e OPENROUTER_API_KEY="sk-or-..." \
   --name jevlaya jevlaya:latest
+
+# Option C: Run full image with local Laya inference (PyTorch)
+# Mounts ~/.cache/huggingface to avoid re-downloading model weights:
+docker build --target full -t jevlaya:full .
+docker run -d -p 8000:8000 \
+  -e JEVLAYA_PROVIDER=laya \
+  -e LAYA_VARIANT=multilingual \
+  -v ~/.cache/huggingface:/home/appuser/.cache/huggingface \
+  --name jevlaya-laya jevlaya:full
 ```
 
 Once running:

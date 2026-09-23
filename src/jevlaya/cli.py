@@ -17,13 +17,17 @@ from jevlaya.providers.laya import LayaAdapter
 from jevlaya.providers.mock import MockProvider
 
 
-def _build_provider(name: str) -> DecisionProvider:
+def _build_provider(
+    name: str,
+    laya_variant: str | None = None,
+    laya_model: str | None = None,
+) -> DecisionProvider:
     """Instantiate a provider adapter by name."""
     name_clean = name.strip().lower()
     if name_clean == "mock":
         return MockProvider()
     if name_clean == "laya":
-        return LayaAdapter()
+        return LayaAdapter(variant=laya_variant, model_name=laya_model)  # type: ignore[arg-type]
     if name_clean == "jev":
         return JevAdapter()
     raise ValueError(f"Unknown provider '{name}'. Options: mock, laya, jev")
@@ -44,7 +48,11 @@ def run_serve(args: argparse.Namespace) -> int:
         return 1
 
     try:
-        provider = _build_provider(args.provider)
+        provider = _build_provider(
+            args.provider,
+            laya_variant=getattr(args, "laya_variant", None),
+            laya_model=getattr(args, "laya_model", None),
+        )
     except Exception as exc:
         print(f"Error configuring provider: {exc}", file=sys.stderr)
         return 1
@@ -52,9 +60,14 @@ def run_serve(args: argparse.Namespace) -> int:
     gateway = DecisionGateway(provider=provider)
     app = create_app(gateway=gateway)
 
+    variant_info = (
+        f", Variant: {getattr(provider, 'variant', 'n/a')}"
+        if args.provider == "laya"
+        else ""
+    )
     print(
         f"Starting Jevlaya Decision Gateway v{__version__} "
-        f"on http://{args.host}:{args.port} (Provider: {provider.name})"
+        f"on http://{args.host}:{args.port} (Provider: {provider.name}{variant_info})"
     )
     print(f"Interactive Swagger documentation available at http://{args.host}:{args.port}/docs")
 
@@ -65,7 +78,11 @@ def run_serve(args: argparse.Namespace) -> int:
 def run_bench(args: argparse.Namespace) -> int:
     """Execute standard DecisionBench evaluation suite."""
     try:
-        provider = _build_provider(args.provider)
+        provider = _build_provider(
+            args.provider,
+            laya_variant=getattr(args, "laya_variant", None),
+            laya_model=getattr(args, "laya_model", None),
+        )
     except Exception as exc:
         print(f"Error configuring provider: {exc}", file=sys.stderr)
         return 1
@@ -121,6 +138,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="Decision engine to serve: mock, laya, jev (default: mock, env: JEVLAYA_PROVIDER)",
     )
     serve_parser.add_argument(
+        "--laya-variant",
+        choices=["base", "multilingual", "typed"],
+        default=os.environ.get("LAYA_VARIANT", "base"),
+        help="Laya model variant: base, multilingual, typed (default: base, env: LAYA_VARIANT)",
+    )
+    serve_parser.add_argument(
+        "--laya-model",
+        default=os.environ.get("LAYA_MODEL", None),
+        help="Custom Laya HuggingFace model repo or local path (env: LAYA_MODEL)",
+    )
+    serve_parser.add_argument(
         "--reload",
         action="store_true",
         help="Enable auto-reload on code change",
@@ -135,6 +163,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--provider",
         default="mock",
         help="Provider to evaluate: mock, laya, jev (default: mock)",
+    )
+    bench_parser.add_argument(
+        "--laya-variant",
+        choices=["base", "multilingual", "typed"],
+        default=os.environ.get("LAYA_VARIANT", "base"),
+        help="Laya model variant: base, multilingual, typed (default: base, env: LAYA_VARIANT)",
+    )
+    bench_parser.add_argument(
+        "--laya-model",
+        default=os.environ.get("LAYA_MODEL", None),
+        help="Custom Laya HuggingFace model repo or local path (env: LAYA_MODEL)",
     )
     bench_parser.add_argument(
         "--warmup",

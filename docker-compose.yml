@@ -3,16 +3,39 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: gateway
     image: jevlaya:latest
     container_name: jevlaya-gateway
     restart: unless-stopped
     ports:
       - "8000:8000"
     environment:
-      # Provider choices: mock, jev, laya
+      # Provider choices: mock, jev (for local laya inference, see gateway-laya below)
       - JEVLAYA_PROVIDER=mock
       - JEVLAYA_HOST=0.0.0.0
       - JEVLAYA_PORT=8000
 
       # Required only if JEVLAYA_PROVIDER=jev
       # - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+
+  # To run with local Laya ML model (PyTorch, ~2.5GB image):
+  # gateway-laya:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #     target: full
+  #   image: jevlaya:full
+  #   container_name: jevlaya-laya
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8000:8000"
+  #   environment:
+  #     - JEVLAYA_PROVIDER=laya
+  #     - LAYA_VARIANT=base # Options: base, multilingual, typed
+  #     - JEVLAYA_HOST=0.0.0.0
+  #     - JEVLAYA_PORT=8000
+  #     # Optional HuggingFace token for higher rate limits:
+  #     # - HF_TOKEN=${HF_TOKEN:-}
+  #   volumes:
+  #     # Persist downloaded HF model weights on the host machine:
+  #     - ~/.cache/huggingface:/home/appuser/.cache/huggingface

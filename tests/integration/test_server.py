@@ -138,3 +138,27 @@ def test_cli_bench_subcommand(capsys) -> None:  # type: ignore[no-untyped-def]
     assert exit_code == 0
     captured = capsys.readouterr()
     assert "DecisionBench Report" in captured.out
+
+
+def test_cli_build_provider_laya_variant() -> None:
+    """_build_provider configures LayaAdapter with custom variant and model."""
+    from jevlaya.cli import _build_provider
+    from jevlaya.providers.laya import LayaAdapter
+
+    provider = _build_provider("laya", laya_variant="multilingual")
+    assert isinstance(provider, LayaAdapter)
+    assert provider.variant == "multilingual"
+    assert provider.model == "convaiinnovations/laya-multilingual"
+    assert provider.capabilities.context_window == 1024
+
+
+def test_cli_serve_help_shows_laya_flags(capsys) -> None:  # type: ignore[no-untyped-def]
+    """CLI serve --help lists --laya-variant and --laya-model."""
+    try:
+        main(["serve", "--help"])
+    except SystemExit as exc:
+        assert exc.code == 0
+    captured = capsys.readouterr()
+    assert "--laya-variant" in captured.out
+    assert "--laya-model" in captured.out
+

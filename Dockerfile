@@ -16,26 +16,12 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# -----------------------------------------------------------------------------
-# Dependency Cache Layer: Install dependencies before copying source code
-# -----------------------------------------------------------------------------
-COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-install-project --extra server
-
-# -----------------------------------------------------------------------------
-# Application Layer: Copy source and install package
-# -----------------------------------------------------------------------------
-COPY README.md ./
-COPY src/ ./src/
-RUN uv sync --frozen --extra server
-
 # Set virtual environment in PATH
 ENV PATH="/app/.venv/bin:$PATH"
 
 # Create unprivileged user for security
 RUN useradd --create-home --shell /bin/bash appuser \
     && chown -R appuser:appuser /app
-USER appuser
 
 EXPOSE 8000
 
@@ -45,3 +31,34 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
 
 ENTRYPOINT ["jevlaya"]
 CMD ["serve"]
+
+# -----------------------------------------------------------------------------
+# Target: full (Includes Laya local ML model with PyTorch ~2.5GB)
+# -----------------------------------------------------------------------------
+FROM base AS full
+
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-install-project --extra server --extra laya
+
+COPY README.md ./
+COPY src/ ./src/
+RUN uv sync --frozen --extra server --extra laya \
+    && chown -R appuser:appuser /app
+
+USER appuser
+
+# -----------------------------------------------------------------------------
+# Target: gateway (Default / Slim ~180MB - mock & jev providers)
+# Placed last so standard `docker build .` defaults to this lightweight stage.
+# -----------------------------------------------------------------------------
+FROM base AS gateway
+
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-install-project --extra server
+
+COPY README.md ./
+COPY src/ ./src/
+RUN uv sync --frozen --extra server \
+    && chown -R appuser:appuser /app
+
+USER appuser
