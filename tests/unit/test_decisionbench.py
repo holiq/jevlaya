@@ -53,6 +53,10 @@ def test_brier_score_calculation() -> None:
     # target is 'a': loss is (0.8 - 1)^2 + (0.2 - 0)^2 = 0.04 + 0.04 = 0.08
     assert compute_brier_score(cat_preds, ["a"]) == 0.08
 
+    # Target label 'c' missing from prediction dictionary:
+    # loss is (0.8 - 0)^2 + (0.2 - 0)^2 + (0 - 1)^2 = 0.64 + 0.04 + 1.0 = 1.68
+    assert compute_brier_score(cat_preds, ["c"]) == 1.68
+
 
 def test_ece_calculation() -> None:
     """Verify Expected Calibration Error (ECE) across confidence bins."""

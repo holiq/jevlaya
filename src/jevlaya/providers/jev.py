@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import random
 import time
 import urllib.error
 import urllib.request
@@ -11,6 +12,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
+from jevlaya._version import __version__
 from jevlaya.errors import (
     InvalidRequest,
     NormalizationError,
@@ -114,7 +116,7 @@ class JevAdapter:
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
-            "User-Agent": "Jevlaya/0.1.0",
+            "User-Agent": f"Jevlaya/{__version__}",
         }
         data = json.dumps(payload).encode("utf-8")
 
@@ -132,7 +134,7 @@ class JevAdapter:
             except urllib.error.HTTPError as http_err:
                 error_body = ""
                 try:
-                    error_body = http_err.read().decode("utf-8")
+                    error_body = http_err.read(4096).decode("utf-8", errors="replace")
                 except Exception:
                     pass
 
@@ -149,14 +151,26 @@ class JevAdapter:
                         f"Jev rejected invalid request: {masked_msg}"
                     ) from http_err
                 if http_err.code in (429, 502, 503, 504) and attempt < self.max_retries:
-                    time.sleep(0.5 * (2**attempt))
+                    retry_after = (
+                        http_err.headers.get("Retry-After")
+                        if hasattr(http_err, "headers") and http_err.headers
+                        else None
+                    )
+                    if retry_after:
+                        try:
+                            delay = float(retry_after)
+                        except (ValueError, TypeError):
+                            delay = (0.5 * (2**attempt)) + random.uniform(0.0, 0.1)
+                    else:
+                        delay = (0.5 * (2**attempt)) + random.uniform(0.0, 0.1)
+                    time.sleep(delay)
                     continue
 
                 raise ProviderResponseError(f"Jev Decisions API error: {masked_msg}") from http_err
             except (TimeoutError, urllib.error.URLError) as net_err:
                 if isinstance(net_err, TimeoutError) or "timed out" in str(net_err).lower():
                     if attempt < self.max_retries:
-                        time.sleep(0.5 * (2**attempt))
+                        time.sleep((0.5 * (2**attempt)) + random.uniform(0.0, 0.1))
                         continue
                     raise ProviderTimeout(
                         f"Jev request timed out after {self.timeout_s}s"

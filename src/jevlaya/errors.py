@@ -6,7 +6,7 @@ import re
 
 # Patterns to mask sensitive tokens, bearer headers, api keys
 _SECRET_PATTERN = re.compile(
-    r"(bearer\s+[a-zA-Z0-9_\-\.]{8,}|key[_-]?[a-zA-Z0-9_\-]{16,}|sk-[a-zA-Z0-9]{20,})",
+    r"(bearer\s+[a-zA-Z0-9_\-\.]{8,}|key[_-]?[a-zA-Z0-9_\-]{16,}|sk-[a-zA-Z0-9_\-]{20,})",
     re.IGNORECASE,
 )
 

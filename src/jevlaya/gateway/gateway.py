@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import time
 from typing import Any
 
@@ -57,29 +58,56 @@ class DecisionGateway:
 
         return self.providers[provider_name]
 
+    def _validate_request(self, request: DecisionRequest | dict[str, Any]) -> DecisionRequest:
+        """Validate input into a canonical DecisionRequest."""
+        if isinstance(request, dict):
+            try:
+                return DecisionRequest.model_validate(request)
+            except ValidationError as err:
+                raise InvalidRequest(f"Invalid decision request: {err}") from err
+        elif isinstance(request, DecisionRequest):
+            return request
+        else:
+            raise InvalidRequest(
+                f"Expected DecisionRequest or dict, received: {type(request).__name__}"
+            )
+
+    def _normalize_response(
+        self,
+        raw_response: Any,
+        elapsed_ms: float,
+        request_id: str | None = None,
+    ) -> DecisionResponse:
+        """Normalize raw provider output into a canonical DecisionResponse."""
+        if isinstance(raw_response, DecisionResponse):
+            update_data: dict[str, Any] = {"latency_ms": round(elapsed_ms, 2)}
+            if request_id and not raw_response.request_id:
+                update_data["request_id"] = request_id
+            return raw_response.model_copy(update=update_data)
+        elif isinstance(raw_response, dict):
+            try:
+                raw_response["latency_ms"] = round(elapsed_ms, 2)
+                if request_id and not raw_response.get("request_id"):
+                    raw_response["request_id"] = request_id
+                return DecisionResponse.model_validate(raw_response)
+            except ValidationError as err:
+                raise NormalizationError(
+                    f"Failed to normalize provider dictionary response: {err}"
+                ) from err
+        else:
+            raise NormalizationError(
+                f"Provider returned invalid response type: {type(raw_response).__name__}"
+            )
+
     def decide(
         self,
         request: DecisionRequest | dict[str, Any],
         provider_name: str | None = None,
     ) -> DecisionResponse:
         """Validate request, invoke provider, track latency, and return normalized response."""
-        # 1. Validation
-        if isinstance(request, dict):
-            try:
-                valid_request = DecisionRequest.model_validate(request)
-            except ValidationError as err:
-                raise InvalidRequest(f"Invalid decision request: {err}") from err
-        elif isinstance(request, DecisionRequest):
-            valid_request = request
-        else:
-            raise InvalidRequest(
-                f"Expected DecisionRequest or dict, received: {type(request).__name__}"
-            )
-
-        # 2. Resolve provider
+        valid_request = self._validate_request(request)
         provider = self.get_provider(provider_name)
 
-        # 3. Invocation with precision latency tracking
         start_time = time.perf_counter()
         try:
             raw_response = provider.decide(valid_request)
@@ -91,21 +119,29 @@ class DecisionGateway:
             ) from exc
 
         elapsed_ms = (time.perf_counter() - start_time) * 1000.0
+        return self._normalize_response(raw_response, elapsed_ms, request_id=valid_request.id)
 
-        # 4. Response normalization
-        if isinstance(raw_response, DecisionResponse):
-            response = raw_response.model_copy(update={"latency_ms": round(elapsed_ms, 2)})
-        elif isinstance(raw_response, dict):
-            try:
-                raw_response["latency_ms"] = round(elapsed_ms, 2)
-                response = DecisionResponse.model_validate(raw_response)
-            except ValidationError as err:
-                raise NormalizationError(
-                    f"Failed to normalize provider dictionary response: {err}"
-                ) from err
-        else:
-            raise NormalizationError(
-                f"Provider returned invalid response type: {type(raw_response).__name__}"
-            )
+    async def adecide(
+        self,
+        request: DecisionRequest | dict[str, Any],
+        provider_name: str | None = None,
+    ) -> DecisionResponse:
+        """Asynchronously validate request, invoke provider, and return normalized response."""
+        valid_request = self._validate_request(request)
+        provider = self.get_provider(provider_name)
 
-        return response
+        start_time = time.perf_counter()
+        try:
+            if hasattr(provider, "adecide"):
+                raw_response = await provider.adecide(valid_request)
+            else:
+                raw_response = await asyncio.to_thread(provider.decide, valid_request)
+        except JevlayaError:
+            raise
+        except Exception as exc:
+            raise ProviderResponseError(
+                f"Provider '{provider.name}' encountered an unexpected error: {exc}"
+            ) from exc
+
+        elapsed_ms = (time.perf_counter() - start_time) * 1000.0
+        return self._normalize_response(raw_response, elapsed_ms, request_id=valid_request.id)

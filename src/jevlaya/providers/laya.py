@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import threading
+import warnings
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict
@@ -55,23 +57,32 @@ class LayaAdapter:
         self._router = router
         self._preload = preload
         self._device = device
+        self._init_lock = threading.Lock()
 
     @property
     def router(self) -> Any:
-        """Resolve or lazily initialize the underlying Laya router instance."""
+        """Resolve or lazily initialize the underlying Laya router instance (thread-safe)."""
         if self._router is not None:
             return self._router
 
-        try:
-            import laya  # type: ignore[import-untyped]
+        with self._init_lock:
+            if self._router is not None:
+                return self._router
 
-            self._router = laya.Router(preload=self._preload, device=self._device)
-            return self._router
-        except ImportError as exc:
-            raise ProviderUnavailable(
-                "The 'laya' package is required for local inference. "
-                "Install it via 'pip install laya' or 'uv add laya'."
-            ) from exc
+            try:
+                import laya  # type: ignore[import-untyped]
+
+                self._router = laya.Router(preload=self._preload, device=self._device)
+                return self._router
+            except ImportError as exc:
+                raise ProviderUnavailable(
+                    "The 'laya' package is required for local inference. "
+                    "Install it via 'pip install laya' or 'uv add laya'."
+                ) from exc
+            except Exception as exc:
+                raise ProviderUnavailable(
+                    f"Failed to initialize Laya model router: {exc}"
+                ) from exc
 
     def translate_request(
         self, request: DecisionRequest
@@ -82,6 +93,15 @@ class LayaAdapter:
 
         for q_id, q in request.questions.items():
             if isinstance(q, ChoiceQuestion):
+                if len(q.criteria) > self.capabilities.max_recommended_options:
+                    max_opts = self.capabilities.max_recommended_options
+                    warnings.warn(
+                        f"Question '{q_id}' has {len(q.criteria)} options, "
+                        f"exceeding Laya recommended max ({max_opts}). "
+                        "High cardinality may degrade model token budget and accuracy.",
+                        UserWarning,
+                        stacklevel=2,
+                    )
                 questions[q_id] = {
                     "type": "choice",
                     "instructions": q.instructions,
@@ -172,7 +192,12 @@ class LayaAdapter:
             if isinstance(question, ScoreQuestion):
                 score = str(raw_ans.get("score", ""))
                 probs_raw = raw_ans.get("probabilities", [])
-                probs_list = [float(p) for p in probs_raw]
+                if isinstance(probs_raw, dict):
+                    probs_list = [float(p) for p in probs_raw.values()]
+                elif isinstance(probs_raw, (list, tuple)):
+                    probs_list = [float(p) for p in probs_raw]
+                else:
+                    probs_list = []
                 conf = float(raw_ans.get("confidence", max(probs_list) if probs_list else 1.0))
                 return ScoreAnswer(
                     type="score",

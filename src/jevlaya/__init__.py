@@ -1,4 +1,4 @@
-"""Jevlaya: Open-source decision-intelligence stack for AI agents."""
+from typing import Any
 
 from jevlaya._version import __version__
 from jevlaya.bench import (
@@ -19,6 +19,7 @@ from jevlaya.errors import (
     ProviderTimeout,
     ProviderUnavailable,
     UnsupportedPrimitive,
+    redact_secrets,
 )
 from jevlaya.gateway import DecisionGateway
 from jevlaya.protocol import (
@@ -42,11 +43,19 @@ from jevlaya.providers import (
     LayaCapabilities,
     MockProvider,
 )
+from jevlaya.routing import PolicyRouter, RoutingMetadata, RoutingPolicy
 
-try:
-    from jevlaya.server import create_app
-except ImportError:
-    create_app = None  # type: ignore[assignment]
+
+def create_app(*args: Any, **kwargs: Any) -> Any:
+    """Create a FastAPI application instance for the decision gateway (requires jevlaya[server])."""
+    try:
+        from jevlaya.server.app import create_app as _create_app
+
+        return _create_app(*args, **kwargs)
+    except ImportError as err:
+        raise ImportError(
+            "FastAPI server dependencies required. Install with: uv sync --extra server"
+        ) from err
 
 __all__ = [
     "__version__",
@@ -68,6 +77,10 @@ __all__ = [
     "BenchmarkComparisonReport",
     "MetricResult",
     "get_sample_dataset",
+    # Routing
+    "PolicyRouter",
+    "RoutingPolicy",
+    "RoutingMetadata",
     # Errors
     "JevlayaError",
     "InvalidRequest",
@@ -77,6 +90,7 @@ __all__ = [
     "ProviderTimeout",
     "ProviderResponseError",
     "NormalizationError",
+    "redact_secrets",
     # Protocol
     "DecisionRequest",
     "DecisionResponse",

@@ -134,6 +134,14 @@ def test_choice_validation() -> None:
             confidence=0.6,
         )
 
+    # Choice answer when probabilities don't sum to ~1.0 must fail
+    with pytest.raises(ValidationError, match="probabilities must sum to ~1.0"):
+        ChoiceAnswer(
+            choice="a",
+            probabilities={"a": 0.2, "b": 0.2},
+            confidence=0.2,
+        )
+
 
 def test_score_validation() -> None:
     """Test score criteria ordering and uniqueness constraints."""
@@ -157,6 +165,14 @@ def test_score_validation() -> None:
             score="low",
             probabilities=[-0.1, 1.1],
             confidence=0.5,
+        )
+
+    # Probabilities not summing to ~1.0 must fail
+    with pytest.raises(ValidationError, match="Score probabilities must sum to ~1.0"):
+        ScoreAnswer(
+            score="low",
+            probabilities=[0.1, 0.1],
+            confidence=0.1,
         )
 
 

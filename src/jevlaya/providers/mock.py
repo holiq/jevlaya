@@ -27,15 +27,23 @@ class MockProvider:
         name: str = "mock",
         model: str = "mock-v1",
         answers: dict[str, Answer] | None = None,
-        simulate_error: Exception | None = None,
+        preset_answers: dict[str, Answer] | None = None,
+        simulate_error: Exception | list[Exception | None] | None = None,
         simulate_latency_ms: float = 0.0,
     ) -> None:
         self.name = name
         self.model = model
-        self.preset_answers = answers
-        self.simulate_error = simulate_error
+        self.preset_answers = preset_answers if preset_answers is not None else answers
+        self._simulate_errors: list[Exception | None] | None = (
+            list(simulate_error) if isinstance(simulate_error, list) else None
+        )
+        self.simulate_error = simulate_error if not isinstance(simulate_error, list) else None
         self.simulate_latency_ms = simulate_latency_ms
         self.calls: list[DecisionRequest] = []
+
+    def reset(self) -> None:
+        """Reset processed request history and error sequences."""
+        self.calls.clear()
 
     @property
     def call_count(self) -> int:
@@ -51,7 +59,12 @@ class MockProvider:
         """Process a request, generating mock answers or raising simulated errors."""
         self.calls.append(request)
 
-        if self.simulate_error is not None:
+        # 1. Sequential error simulation
+        if self._simulate_errors:
+            err = self._simulate_errors.pop(0)
+            if err is not None:
+                raise err
+        elif self.simulate_error is not None:
             raise self.simulate_error
 
         if self.simulate_latency_ms > 0:

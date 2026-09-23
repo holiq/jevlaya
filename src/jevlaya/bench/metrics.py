@@ -66,18 +66,28 @@ def compute_brier_score(
             # Categorical distribution over named labels
             target_str = str(target)
             loss_item = 0.0
+            target_found = False
             for label, prob in pred.items():
                 y = 1.0 if label == target_str else 0.0
+                if label == target_str:
+                    target_found = True
                 loss_item += (prob - y) ** 2
+            if not target_found:
+                loss_item += 1.0
             total_squared_loss += loss_item
 
         elif isinstance(pred, list):
             # Ordered scale distribution
             target_idx = int(target) if isinstance(target, (int, float)) else -1
             loss_item = 0.0
+            target_found = False
             for idx, prob in enumerate(pred):
                 y = 1.0 if idx == target_idx else 0.0
+                if idx == target_idx:
+                    target_found = True
                 loss_item += (prob - y) ** 2
+            if not target_found and target_idx >= 0:
+                loss_item += 1.0
             total_squared_loss += loss_item
 
     return round(total_squared_loss / len(predictions), 4)

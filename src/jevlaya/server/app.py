@@ -108,7 +108,7 @@ def create_app(gateway: DecisionGateway | None = None) -> FastAPI:
             "Process structured questions across state using the specified decision engine."
         ),
     )
-    def submit_decision(
+    async def submit_decision(
         request: DecisionRequest,
         provider: str | None = Query(
             default=None,
@@ -116,6 +116,6 @@ def create_app(gateway: DecisionGateway | None = None) -> FastAPI:
         ),
     ) -> DecisionResponse:
         """Process canonical decision request and return normalized response with probabilities."""
-        return gw.decide(request, provider_name=provider)
+        return await gw.adecide(request, provider_name=provider)
 
     return app

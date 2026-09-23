@@ -162,3 +162,25 @@ def test_gateway_raises_normalization_error_on_corrupt_response() -> None:
 
     with pytest.raises(NormalizationError, match="invalid response type"):
         gateway.decide(req)
+
+
+def test_gateway_preserves_request_id() -> None:
+    """Gateway assigns and preserves request_id on the response."""
+    gateway = DecisionGateway(provider=MockProvider())
+    req = DecisionRequest(questions={"q": NoulQuestion(instructions="Test")})
+    assert req.id is not None
+
+    res = gateway.decide(req)
+    assert res.request_id == req.id
+
+
+@pytest.mark.asyncio
+async def test_gateway_async_adecide() -> None:
+    """Gateway async adecide processes request and returns normalized response."""
+    gateway = DecisionGateway(provider=MockProvider())
+    req = DecisionRequest(questions={"q": NoulQuestion(instructions="Test")})
+
+    res = await gateway.adecide(req)
+    assert isinstance(res, DecisionResponse)
+    assert res.request_id == req.id
+    assert res.latency_ms >= 0.0

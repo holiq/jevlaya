@@ -39,3 +39,7 @@ def test_redact_secrets_utility() -> None:
     """Test the standalone secret redactor function."""
     assert redact_secrets("normal error message") == "normal error message"
     assert redact_secrets("Using key-abcdef1234567890") == "Using [REDACTED]"
+    assert (
+        redact_secrets("Failed request with key: sk-or-v1-a1b2c3d4e5f6789012345678abcdef01")
+        == "Failed request with key: [REDACTED]"
+    )

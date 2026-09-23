@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+import uuid
 from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -70,6 +72,7 @@ Question = Annotated[
 class DecisionRequest(BaseProtocolModel):
     """Canonical request payload sent to the decision gateway."""
 
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     state: dict[str, Any] = Field(default_factory=dict)
     questions: dict[str, Question]
 
@@ -104,11 +107,17 @@ class ChoiceAnswer(BaseProtocolModel):
         return v
 
     @model_validator(mode="after")
-    def validate_choice_in_probabilities(self) -> ChoiceAnswer:
-        if self.probabilities and self.choice not in self.probabilities:
-            raise ValueError(
-                f"Selected choice '{self.choice}' must be present in probabilities distribution"
-            )
+    def validate_choice_and_probabilities(self) -> ChoiceAnswer:
+        if self.probabilities:
+            if self.choice not in self.probabilities:
+                raise ValueError(
+                    f"Selected choice '{self.choice}' must be present in probabilities distribution"
+                )
+            prob_sum = sum(self.probabilities.values())
+            if not math.isclose(prob_sum, 1.0, abs_tol=0.05):
+                raise ValueError(
+                    f"Choice probabilities must sum to ~1.0, got {prob_sum:.4f}"
+                )
         return self
 
 
@@ -129,6 +138,16 @@ class ScoreAnswer(BaseProtocolModel):
                     f"Probability at index {i} must be between 0.0 and 1.0, got {prob}"
                 )
         return v
+
+    @model_validator(mode="after")
+    def validate_score_probabilities(self) -> ScoreAnswer:
+        if self.probabilities:
+            prob_sum = sum(self.probabilities)
+            if not math.isclose(prob_sum, 1.0, abs_tol=0.05):
+                raise ValueError(
+                    f"Score probabilities must sum to ~1.0, got {prob_sum:.4f}"
+                )
+        return self
 
 
 class NoulAnswer(BaseProtocolModel):
@@ -160,3 +179,5 @@ class DecisionResponse(BaseProtocolModel):
     answers: dict[str, Answer]
     usage: UsageInfo = Field(default_factory=UsageInfo)
     latency_ms: float = Field(..., ge=0.0)
+    request_id: str | None = None
+    routing: dict[str, Any] | None = None
