@@ -7,7 +7,7 @@ name = "jevlaya"
 version = "0.1.0.dev0"
 description = "Open-source decision-intelligence stack for AI agents"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 license = "Apache-2.0"
 authors = [
     { name = "Holiq Ibrahim" }

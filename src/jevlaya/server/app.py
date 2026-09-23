@@ -108,7 +108,7 @@ def create_app(gateway: DecisionGateway | None = None) -> FastAPI:
             "Process structured questions across state using the specified decision engine."
         ),
     )
-    async def submit_decision(
+    def submit_decision(
         request: DecisionRequest,
         provider: str | None = Query(
             default=None,

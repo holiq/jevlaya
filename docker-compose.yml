@@ -1,0 +1,18 @@
+services:
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: jevlaya:latest
+    container_name: jevlaya-gateway
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # Provider choices: mock, jev, laya
+      - JEVLAYA_PROVIDER=mock
+      - JEVLAYA_HOST=0.0.0.0
+      - JEVLAYA_PORT=8000
+
+      # Required only if JEVLAYA_PROVIDER=jev
+      # - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}

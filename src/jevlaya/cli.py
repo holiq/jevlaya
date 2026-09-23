@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from collections.abc import Sequence
 
@@ -105,19 +106,19 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     serve_parser.add_argument(
         "--host",
-        default="0.0.0.0",
-        help="Host interface to bind (default: 0.0.0.0)",
+        default=os.environ.get("JEVLAYA_HOST", "0.0.0.0"),
+        help="Host interface to bind (default: 0.0.0.0, env: JEVLAYA_HOST)",
     )
     serve_parser.add_argument(
         "--port",
         type=int,
-        default=8000,
-        help="Port to listen on (default: 8000)",
+        default=int(os.environ.get("JEVLAYA_PORT", "8000")),
+        help="Port to listen on (default: 8000, env: JEVLAYA_PORT)",
     )
     serve_parser.add_argument(
         "--provider",
-        default="mock",
-        help="Decision engine to serve: mock, laya, jev (default: mock)",
+        default=os.environ.get("JEVLAYA_PROVIDER", "mock"),
+        help="Decision engine to serve: mock, laya, jev (default: mock, env: JEVLAYA_PROVIDER)",
     )
     serve_parser.add_argument(
         "--reload",

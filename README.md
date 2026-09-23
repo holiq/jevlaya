@@ -155,6 +155,23 @@ uv run jevlaya serve --provider laya --port 8000
 OPENROUTER_API_KEY="sk-or-..." uv run jevlaya serve --provider jev --port 8000
 ```
 
+#### Run with Docker / Docker Compose
+
+```bash
+# Option A: One-command launch with Docker Compose
+docker compose up -d
+
+# Option B: Build and run standard Docker container
+docker build -t jevlaya:latest .
+docker run -d -p 8000:8000 --name jevlaya jevlaya:latest
+
+# Run with hosted Jev provider via environment variables:
+docker run -d -p 8000:8000 \
+  -e JEVLAYA_PROVIDER=jev \
+  -e OPENROUTER_API_KEY="sk-or-..." \
+  --name jevlaya jevlaya:latest
+```
+
 Once running:
 - **Interactive Swagger Docs:** `http://localhost:8000/docs`
 - **OpenAPI Schema:** `http://localhost:8000/openapi.json`

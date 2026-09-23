@@ -1,0 +1,29 @@
+# Git
+.git
+.gitignore
+
+# Python & Virtual Environments
+.venv
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache
+.ruff_cache
+
+# Tooling & Tests
+tests
+docs
+specs
+tasks
+.github
+
+# Bun / Node
+node_modules
+bun.lock*
+package.json
+
+# Environment / Secrets
+.env
+.env.*
+*.local
