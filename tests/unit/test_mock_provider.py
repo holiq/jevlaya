@@ -56,9 +56,7 @@ def test_mock_provider_preset_answers() -> None:
         "flag": NoulAnswer(type="noul", noul=0.99),
     }
     provider = MockProvider(answers=preset)
-    request = DecisionRequest(
-        questions={"flag": NoulQuestion(instructions="Escalate?")}
-    )
+    request = DecisionRequest(questions={"flag": NoulQuestion(instructions="Escalate?")})
 
     response = provider.decide(request)
     assert response.answers["flag"].noul == 0.99
@@ -67,9 +65,7 @@ def test_mock_provider_preset_answers() -> None:
 def test_mock_provider_error_simulation() -> None:
     """MockProvider raises simulated exceptions when configured."""
     provider = MockProvider(simulate_error=ProviderTimeout("Connection timed out"))
-    request = DecisionRequest(
-        questions={"q": NoulQuestion(instructions="Check")}
-    )
+    request = DecisionRequest(questions={"q": NoulQuestion(instructions="Check")})
 
     with pytest.raises(ProviderTimeout, match="Connection timed out"):
         provider.decide(request)

@@ -183,14 +183,16 @@ def test_empty_questions_validation() -> None:
 def test_unknown_question_primitive_validation() -> None:
     """Unsupported question primitives must fail discriminator validation."""
     with pytest.raises(ValidationError):
-        DecisionRequest.model_validate({
-            "questions": {
-                "q1": {
-                    "type": "unsupported_primitive",
-                    "instructions": "Do something",
+        DecisionRequest.model_validate(
+            {
+                "questions": {
+                    "q1": {
+                        "type": "unsupported_primitive",
+                        "instructions": "Do something",
+                    }
                 }
             }
-        })
+        )
 
 
 def test_json_roundtrip() -> None:

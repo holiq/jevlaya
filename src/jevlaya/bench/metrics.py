@@ -130,7 +130,5 @@ def compute_score_mae(
     if not predicted_indices or len(predicted_indices) != len(target_indices):
         return 0.0
 
-    total_abs_diff = sum(
-        abs(p - t) for p, t in zip(predicted_indices, target_indices, strict=True)
-    )
+    total_abs_diff = sum(abs(p - t) for p, t in zip(predicted_indices, target_indices, strict=True))
     return round(total_abs_diff / len(predicted_indices), 4)

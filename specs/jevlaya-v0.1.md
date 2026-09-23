@@ -93,8 +93,7 @@ class DecisionProvider(Protocol):
         self,
         state: dict,
         questions: dict,
-    ) -> DecisionResponse:
-        ...
+    ) -> DecisionResponse: ...
 ```
 
 The exact public API can change during implementation. The invariant is that all providers normalize to the canonical response.

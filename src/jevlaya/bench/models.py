@@ -71,9 +71,7 @@ class BenchmarkReport(BaseModel):
     model: str
     metrics: MetricResult
     per_primitive_metrics: dict[str, dict[str, float]] = Field(default_factory=dict)
-    timestamp: str = Field(
-        default_factory=lambda: datetime.now(UTC).isoformat()
-    )
+    timestamp: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
 
     def to_json(self, indent: int = 2) -> str:
         """Serialize benchmark report to JSON."""
@@ -108,13 +106,15 @@ class BenchmarkReport(BaseModel):
         ]
 
         if self.per_primitive_metrics:
-            lines.extend([
-                "",
-                "## Per-Primitive Metrics",
-                "",
-                "| Primitive | Accuracy | Brier Score | ECE |",
-                "| :--- | :--- | :--- | :--- |",
-            ])
+            lines.extend(
+                [
+                    "",
+                    "## Per-Primitive Metrics",
+                    "",
+                    "| Primitive | Accuracy | Brier Score | ECE |",
+                    "| :--- | :--- | :--- | :--- |",
+                ]
+            )
             for prim, p_met in self.per_primitive_metrics.items():
                 acc = p_met.get("accuracy", 0.0)
                 brier = p_met.get("brier", 0.0)
@@ -132,9 +132,7 @@ class BenchmarkComparisonReport(BaseModel):
     dataset_name: str
     dataset_version: str
     reports: list[BenchmarkReport]
-    timestamp: str = Field(
-        default_factory=lambda: datetime.now(UTC).isoformat()
-    )
+    timestamp: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
 
     def to_json(self, indent: int = 2) -> str:
         """Serialize comparison report to JSON."""

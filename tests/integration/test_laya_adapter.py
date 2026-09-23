@@ -31,9 +31,7 @@ class FakeLayaRouter:
         self.last_state: dict[str, Any] | None = None
         self.last_questions: dict[str, Any] | None = None
 
-    def predict(
-        self, state: dict[str, Any], questions: dict[str, Any]
-    ) -> dict[str, Any]:
+    def predict(self, state: dict[str, Any], questions: dict[str, Any]) -> dict[str, Any]:
         self.last_state = state
         self.last_questions = questions
 
@@ -50,8 +48,7 @@ class FakeLayaRouter:
                     "choice": first_crit,
                     "confidence": 0.94,
                     "probabilities": {
-                        k: 0.94 if k == first_crit else 0.06
-                        for k in q_data["criteria"]
+                        k: 0.94 if k == first_crit else 0.06 for k in q_data["criteria"]
                     },
                 }
             elif q_type == "score":
@@ -59,9 +56,8 @@ class FakeLayaRouter:
                 answers[q_id] = {
                     "score": first_level,
                     "confidence": 0.88,
-                    "probabilities": [0.88] + [0.12 / (len(q_data["criteria"]) - 1)] * (
-                        len(q_data["criteria"]) - 1
-                    ),
+                    "probabilities": [0.88]
+                    + [0.12 / (len(q_data["criteria"]) - 1)] * (len(q_data["criteria"]) - 1),
                 }
             elif q_type == "noul":
                 answers[q_id] = {"noul": 0.72}
@@ -180,6 +176,7 @@ def test_missing_laya_package_raises_provider_unavailable() -> None:
 
 def test_router_prediction_failure_raises_provider_response_error() -> None:
     """Underlying router exceptions during predict are mapped to ProviderResponseError."""
+
     class BrokenRouter:
         def predict(self, state: Any, questions: Any) -> Any:
             raise RuntimeError("CUDA out of memory")

@@ -178,8 +178,7 @@ class DecisionProvider(Protocol):
         self,
         state: dict[str, Any],
         questions: dict[str, Any],
-    ) -> DecisionResponse:
-        ...
+    ) -> DecisionResponse: ...
 ```
 
 ### Adapter Responsibilities:

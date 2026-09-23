@@ -131,6 +131,70 @@ print(report.to_markdown())
 print(report.to_json())
 ```
 
+### 5. Self-Hosted Gateway Server & CLI (Option 1)
+
+Jevlaya includes a built-in, lightweight HTTP Decision Gateway server powered by FastAPI and Uvicorn. This allows AI agents written in any language (Node.js, Go, Rust, Python, etc.) to query local or remote decision models via standard HTTP/JSON.
+
+#### Install Server Dependencies
+
+```bash
+uv sync --extra server
+# or: pip install "jevlaya[server]"
+```
+
+#### Start the Server via CLI
+
+```bash
+# Start server with default Mock provider on port 8000
+uv run jevlaya serve
+
+# Start server backed by local Laya model
+uv run jevlaya serve --provider laya --port 8000
+
+# Start server backed by hosted Jev (OpenRouter)
+OPENROUTER_API_KEY="sk-or-..." uv run jevlaya serve --provider jev --port 8000
+```
+
+Once running:
+- **Interactive Swagger Docs:** `http://localhost:8000/docs`
+- **OpenAPI Schema:** `http://localhost:8000/openapi.json`
+- **Health Check:** `GET http://localhost:8000/health`
+- **Provider Status:** `GET http://localhost:8000/v1/providers`
+- **Submit Decision:** `POST http://localhost:8000/v1/decisions`
+
+#### Querying from Any Agent (cURL Example)
+
+```bash
+curl -X POST http://localhost:8000/v1/decisions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "state": {
+      "text": "Unauthorized credit card charge detected on account."
+    },
+    "questions": {
+      "triage": {
+        "type": "choice",
+        "instructions": "Assign team",
+        "criteria": {
+          "fraud": "Fraud investigation",
+          "billing": "Standard billing"
+        }
+      },
+      "urgent": {
+        "type": "noul",
+        "instructions": "Escalate immediately?"
+      }
+    }
+  }'
+```
+
+#### Run DecisionBench via CLI
+
+```bash
+uv run jevlaya bench --provider mock
+```
+
+
 ---
 
 ## Development Setup
@@ -158,7 +222,7 @@ bun install
 ### Running Tests
 
 ```bash
-# Run Python test suite (53 tests)
+# Run Python test suite (61 tests)
 uv run pytest
 
 # Run Ruff linter

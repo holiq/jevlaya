@@ -1,5 +1,6 @@
 """Jevlaya: Open-source decision-intelligence stack for AI agents."""
 
+from jevlaya._version import __version__
 from jevlaya.bench import (
     BenchmarkComparisonReport,
     BenchmarkDataset,
@@ -42,12 +43,16 @@ from jevlaya.providers import (
     MockProvider,
 )
 
-__version__ = "0.1.0.dev0"
+try:
+    from jevlaya.server import create_app
+except ImportError:
+    create_app = None  # type: ignore[assignment]
 
 __all__ = [
     "__version__",
-    # Gateway
+    # Gateway & Server
     "DecisionGateway",
+    "create_app",
     # Providers
     "DecisionProvider",
     "MockProvider",

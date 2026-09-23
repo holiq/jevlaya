@@ -94,9 +94,7 @@ class DecisionGateway:
 
         # 4. Response normalization
         if isinstance(raw_response, DecisionResponse):
-            response = raw_response.model_copy(
-                update={"latency_ms": round(elapsed_ms, 2)}
-            )
+            response = raw_response.model_copy(update={"latency_ms": round(elapsed_ms, 2)})
         elif isinstance(raw_response, dict):
             try:
                 raw_response["latency_ms"] = round(elapsed_ms, 2)

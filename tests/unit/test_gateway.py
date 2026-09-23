@@ -128,6 +128,7 @@ def test_gateway_wraps_unexpected_exceptions() -> None:
 
 def test_gateway_normalizes_dict_response() -> None:
     """Gateway normalizes a dictionary response into a canonical DecisionResponse."""
+
     class DictProvider:
         name = "dict-provider"
 
@@ -135,9 +136,7 @@ def test_gateway_normalizes_dict_response() -> None:
             return {
                 "provider": "dict-provider",
                 "model": "dict-v1",
-                "answers": {
-                    "q": {"type": "noul", "noul": 0.8}
-                },
+                "answers": {"q": {"type": "noul", "noul": 0.8}},
                 "latency_ms": 5.0,
             }
 
@@ -151,6 +150,7 @@ def test_gateway_normalizes_dict_response() -> None:
 
 def test_gateway_raises_normalization_error_on_corrupt_response() -> None:
     """Gateway raises NormalizationError if provider response is invalid type."""
+
     class BadProvider:
         name = "bad-provider"
 

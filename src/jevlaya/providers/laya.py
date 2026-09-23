@@ -120,9 +120,7 @@ class LayaAdapter:
 
         raw_answers = raw_result.get("answers")
         if not isinstance(raw_answers, dict):
-            raise NormalizationError(
-                "Laya router output missing valid 'answers' dictionary"
-            )
+            raise NormalizationError("Laya router output missing valid 'answers' dictionary")
 
         normalized_answers: dict[str, Answer] = {}
 
@@ -134,9 +132,7 @@ class LayaAdapter:
 
             raw_ans = raw_answers[q_id]
             if not isinstance(raw_ans, dict):
-                raise NormalizationError(
-                    f"Laya answer for question '{q_id}' is not a dictionary"
-                )
+                raise NormalizationError(f"Laya answer for question '{q_id}' is not a dictionary")
 
             normalized_answers[q_id] = self._normalize_answer(q_id, question, raw_ans)
 
@@ -196,6 +192,4 @@ class LayaAdapter:
                 f"Failed to normalize Laya answer for '{q_id}': {exc}"
             ) from exc
 
-        raise NormalizationError(
-            f"Unrecognized question primitive type: {type(question).__name__}"
-        )
+        raise NormalizationError(f"Unrecognized question primitive type: {type(question).__name__}")

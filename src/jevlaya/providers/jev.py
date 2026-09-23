@@ -62,9 +62,7 @@ class JevAdapter:
         http_client: Any = None,
     ) -> None:
         self.api_key = (
-            api_key
-            or os.environ.get("OPENROUTER_API_KEY")
-            or os.environ.get("JEV_API_KEY")
+            api_key or os.environ.get("OPENROUTER_API_KEY") or os.environ.get("JEV_API_KEY")
         )
         self.model = model_name
         self.endpoint = endpoint
@@ -154,9 +152,7 @@ class JevAdapter:
                     time.sleep(0.5 * (2**attempt))
                     continue
 
-                raise ProviderResponseError(
-                    f"Jev Decisions API error: {masked_msg}"
-                ) from http_err
+                raise ProviderResponseError(f"Jev Decisions API error: {masked_msg}") from http_err
             except (TimeoutError, urllib.error.URLError) as net_err:
                 if isinstance(net_err, TimeoutError) or "timed out" in str(net_err).lower():
                     if attempt < self.max_retries:
@@ -276,10 +272,6 @@ class JevAdapter:
                     noul=noul_val,
                 )
         except Exception as exc:
-            raise NormalizationError(
-                f"Failed to normalize Jev answer for '{q_id}': {exc}"
-            ) from exc
+            raise NormalizationError(f"Failed to normalize Jev answer for '{q_id}': {exc}") from exc
 
-        raise NormalizationError(
-            f"Unrecognized question primitive type: {type(question).__name__}"
-        )
+        raise NormalizationError(f"Unrecognized question primitive type: {type(question).__name__}")

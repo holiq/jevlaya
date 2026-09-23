@@ -103,6 +103,7 @@ def test_jev_request_translation() -> None:
 
 def test_jev_response_normalization() -> None:
     """JevAdapter normalizes raw OpenRouter Decisions API payload into DecisionResponse."""
+
     def mock_http(endpoint: str, payload: Any, key: str, timeout: float) -> dict[str, Any]:
         return make_mock_jev_response()
 
@@ -183,6 +184,7 @@ def test_secret_redaction_in_auth_error() -> None:
 
 def test_http_timeout_handling() -> None:
     """HTTP client timeout raises ProviderTimeout."""
+
     def timeout_http(endpoint: str, payload: Any, key: str, timeout: float) -> Any:
         raise ProviderTimeout("Jev request timed out after 15.0s")
 
@@ -195,6 +197,7 @@ def test_http_timeout_handling() -> None:
 
 def test_http_server_error_handling() -> None:
     """HTTP 500 error raises ProviderResponseError."""
+
     def server_error_http(endpoint: str, payload: Any, key: str, timeout: float) -> Any:
         raise ProviderResponseError("Jev Decisions API error: HTTP 500 Internal Server Error")
 
@@ -207,6 +210,7 @@ def test_http_server_error_handling() -> None:
 
 def test_corrupt_jev_payload_raises_normalization_error() -> None:
     """Missing answers dictionary in Jev response triggers NormalizationError."""
+
     def corrupt_http(endpoint: str, payload: Any, key: str, timeout: float) -> dict[str, Any]:
         return {"id": "123"}
 
@@ -219,6 +223,7 @@ def test_corrupt_jev_payload_raises_normalization_error() -> None:
 
 def test_gateway_with_jev_adapter() -> None:
     """DecisionGateway operates smoothly with JevAdapter."""
+
     def mock_http(endpoint: str, payload: Any, key: str, timeout: float) -> dict[str, Any]:
         return make_mock_jev_response()
 
