@@ -1,5 +1,7 @@
 """Integration tests for JevAdapter, OpenRouter Decisions API normalization, and secret safety."""
 
+import io
+import urllib.error
 from typing import Any
 
 import pytest
@@ -241,3 +243,35 @@ def test_gateway_with_jev_adapter() -> None:
     assert isinstance(res.answers["is_bug"], NoulAnswer)
     assert res.answers["is_bug"].noul == 0.96
     assert res.latency_ms >= 0.0
+
+
+def test_jev_endpoint_fallback_on_404() -> None:
+    """JevAdapter transparently retries on fallback_endpoint if alpha endpoint returns 404."""
+    called_endpoints: list[str] = []
+
+    def mock_http_with_fallback(
+        endpoint: str, payload: Any, key: str, timeout: float
+    ) -> dict[str, Any]:
+        called_endpoints.append(endpoint)
+        if endpoint == "https://openrouter.ai/api/alpha/decisions":
+            raise urllib.error.HTTPError(
+                url=endpoint,
+                code=404,
+                msg="Not Found",
+                hdrs=None,  # type: ignore[arg-type]
+                fp=io.BytesIO(b"Alpha endpoint deprecated"),
+            )
+        return make_mock_jev_response()
+
+    adapter = JevAdapter(
+        api_key="sk-or-test",
+        endpoint="https://openrouter.ai/api/alpha/decisions",
+        fallback_endpoint="https://openrouter.ai/api/v1/systemone",
+        http_client=mock_http_with_fallback,
+    )
+    req = DecisionRequest(questions={"is_bug": NoulQuestion(instructions="Test")})
+    res = adapter.decide(req)
+
+    assert res.provider == "jev"
+    assert "https://openrouter.ai/api/alpha/decisions" in called_endpoints
+    assert "https://openrouter.ai/api/v1/systemone" in called_endpoints

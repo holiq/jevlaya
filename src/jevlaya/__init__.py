@@ -36,6 +36,7 @@ from jevlaya.protocol import (
     UsageInfo,
 )
 from jevlaya.providers import (
+    LAYA_CHECKPOINTS,
     DecisionProvider,
     JevAdapter,
     JevCapabilities,
@@ -67,6 +68,7 @@ __all__ = [
     "MockProvider",
     "LayaAdapter",
     "LayaCapabilities",
+    "LAYA_CHECKPOINTS",
     "JevAdapter",
     "JevCapabilities",
     # DecisionBench

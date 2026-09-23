@@ -214,3 +214,24 @@ def test_gateway_with_laya_adapter() -> None:
     assert res.provider == "laya"
     assert isinstance(res.answers["esc"], NoulAnswer)
     assert res.latency_ms >= 0.0
+
+
+def test_laya_checkpoint_variants() -> None:
+    """LayaAdapter resolves official checkpoint variants and sets appropriate context window."""
+    # Base variant (default)
+    base = LayaAdapter()
+    assert base.model == "convaiinnovations/laya"
+    assert base.variant == "base"
+    assert base.capabilities.context_window == 512
+
+    # Multilingual variant
+    multi = LayaAdapter(variant="multilingual")
+    assert multi.model == "convaiinnovations/laya-multilingual"
+    assert multi.variant == "multilingual"
+    assert multi.capabilities.context_window == 1024
+
+    # Typed decisions variant
+    typed = LayaAdapter(variant="typed")
+    assert typed.model == "convaiinnovations/laya-typed-decisions"
+    assert typed.variant == "typed"
+    assert typed.capabilities.context_window == 512

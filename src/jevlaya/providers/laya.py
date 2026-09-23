@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import threading
 import warnings
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -26,6 +26,12 @@ from jevlaya.protocol.models import (
     UsageInfo,
 )
 
+LAYA_CHECKPOINTS: dict[str, str] = {
+    "base": "convaiinnovations/laya",
+    "multilingual": "convaiinnovations/laya-multilingual",
+    "typed": "convaiinnovations/laya-typed-decisions",
+}
+
 
 class LayaCapabilities(BaseModel):
     """Declared capabilities and constraints for the Laya model family."""
@@ -38,6 +44,7 @@ class LayaCapabilities(BaseModel):
     supports_multilingual: bool = True
     local_inference: bool = True
     max_recommended_options: int = 20
+    context_window: int = 512
 
 
 class LayaAdapter:
@@ -47,13 +54,21 @@ class LayaAdapter:
 
     def __init__(
         self,
-        model_name: str = "convaiinnovations/laya",
+        model_name: str | None = None,
+        variant: Literal["base", "multilingual", "typed"] | None = None,
         router: Any = None,
         preload: bool = False,
         device: str | None = None,
     ) -> None:
-        self.model = model_name
-        self.capabilities = LayaCapabilities()
+        chosen_variant = variant or "base"
+        resolved_model = model_name or LAYA_CHECKPOINTS.get(
+            chosen_variant, LAYA_CHECKPOINTS["base"]
+        )
+        context_window = 1024 if chosen_variant == "multilingual" else 512
+
+        self.model = resolved_model
+        self.variant = chosen_variant
+        self.capabilities = LayaCapabilities(context_window=context_window)
         self._router = router
         self._preload = preload
         self._device = device

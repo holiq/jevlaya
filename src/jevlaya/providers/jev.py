@@ -59,6 +59,7 @@ class JevAdapter:
         api_key: str | None = None,
         model_name: str = "typesafe/jev-1.13",
         endpoint: str = "https://openrouter.ai/api/alpha/decisions",
+        fallback_endpoint: str | None = "https://openrouter.ai/api/v1/systemone",
         timeout_s: float = 15.0,
         max_retries: int = 2,
         http_client: Any = None,
@@ -68,6 +69,7 @@ class JevAdapter:
         )
         self.model = model_name
         self.endpoint = endpoint
+        self.fallback_endpoint = fallback_endpoint
         self.timeout_s = timeout_s
         self.max_retries = max_retries
         self.capabilities = JevCapabilities()
@@ -111,7 +113,14 @@ class JevAdapter:
             )
 
         if self.http_client is not None:
-            return self.http_client(self.endpoint, payload, self.api_key, self.timeout_s)
+            try:
+                return self.http_client(self.endpoint, payload, self.api_key, self.timeout_s)
+            except urllib.error.HTTPError as err:
+                if err.code == 404 and self.fallback_endpoint:
+                    return self.http_client(
+                        self.fallback_endpoint, payload, self.api_key, self.timeout_s
+                    )
+                raise
 
         headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -119,10 +128,11 @@ class JevAdapter:
             "User-Agent": f"Jevlaya/{__version__}",
         }
         data = json.dumps(payload).encode("utf-8")
+        current_endpoint = self.endpoint
 
         for attempt in range(self.max_retries + 1):
             req = urllib.request.Request(
-                self.endpoint,
+                current_endpoint,
                 data=data,
                 headers=headers,
                 method="POST",
@@ -141,6 +151,14 @@ class JevAdapter:
                 masked_msg = redact_secrets(
                     f"HTTP {http_err.code}: {http_err.reason} - {error_body}"
                 )
+
+                if (
+                    http_err.code == 404
+                    and self.fallback_endpoint
+                    and current_endpoint != self.fallback_endpoint
+                ):
+                    current_endpoint = self.fallback_endpoint
+                    continue
 
                 if http_err.code in (401, 403):
                     raise ProviderAuthenticationError(

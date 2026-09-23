@@ -28,9 +28,6 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
 
-    name: Build & Publish Container Image
-    runs-on: ubuntu-latest
-
     steps:
       - name: Prepare Platform Identifier
         run: |
@@ -83,6 +80,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+
     steps:
       - name: Download digests
         uses: actions/download-artifact@v4

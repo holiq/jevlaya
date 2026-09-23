@@ -18,6 +18,9 @@ class RoutingPolicy(BaseModel):
     on_uncertain: Literal["fallback", "escalate", "accept"] = "fallback"
     on_provider_error: Literal["fallback", "raise"] = "fallback"
     policy_version: str = "1.0"
+    max_primary_cardinality: int = 20
+    max_primary_context_chars: int = 2000
+    confidence_scaling: dict[str, float] = Field(default_factory=dict)
 
 
 class RoutingMetadata(BaseModel):
@@ -30,6 +33,8 @@ class RoutingMetadata(BaseModel):
     fallback_used: bool = False
     fallback_provider: str | None = None
     fallback_reason: str | None = None
+    pre_routing_bypass: bool = False
+    bypass_reason: str | None = None
     min_confidence_observed: float | None = None
     policy_version: str = "1.0"
     fallback_latency_ms: float = 0.0
