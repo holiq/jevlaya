@@ -1,0 +1,19 @@
+{
+  "name": "jevlaya",
+  "version": "0.1.0-dev.0",
+  "description": "Open-source decision-intelligence stack for AI agents",
+  "type": "module",
+  "scripts": {
+    "test": "bun test",
+    "lint": "bunx biome check . || true"
+  },
+  "packageManager": "bun@1.4.2",
+  "keywords": [
+    "decision-intelligence",
+    "ai-agents",
+    "system-one",
+    "laya",
+    "jev"
+  ],
+  "license": "Apache-2.0"
+}
