@@ -23,6 +23,9 @@ dev = [
     "pytest-asyncio>=1.4.0",
     "ruff>=0.16.8",
 ]
+laya = [
+    "laya>=0.3.6",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/jevlaya"]
