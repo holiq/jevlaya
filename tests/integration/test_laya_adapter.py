@@ -1,5 +1,6 @@
 """Integration tests for LayaAdapter, capability declarations, and normalization."""
 
+import sys
 from typing import Any
 
 import pytest
@@ -165,11 +166,11 @@ def test_decide_and_normalization() -> None:
     assert res.answers["alert"].noul == 0.72
 
 
-def test_missing_laya_package_raises_provider_unavailable() -> None:
+def test_missing_laya_package_raises_provider_unavailable(monkeypatch: pytest.MonkeyPatch) -> None:
     """When router is not injected and package cannot be imported, raise ProviderUnavailable."""
+    monkeypatch.setitem(sys.modules, "laya", None)
     adapter = LayaAdapter(router=None)
 
-    # In test environment, laya is not installed
     with pytest.raises(ProviderUnavailable, match="The 'laya' package is required"):
         _ = adapter.router
 

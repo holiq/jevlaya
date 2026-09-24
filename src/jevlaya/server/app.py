@@ -20,11 +20,14 @@ from jevlaya.errors import (
 from jevlaya.gateway.gateway import DecisionGateway
 from jevlaya.protocol.models import DecisionRequest, DecisionResponse
 from jevlaya.providers.mock import MockProvider
+from jevlaya.telemetry.sinks import InMemoryTelemetrySink
 
 
 def create_app(gateway: DecisionGateway | None = None) -> FastAPI:
     """Create and configure a FastAPI application instance for the decision gateway."""
     gw = gateway or DecisionGateway(provider=MockProvider())
+    if gw.telemetry is None:
+        gw.telemetry = InMemoryTelemetrySink()
 
     app = FastAPI(
         title="Jevlaya Decision Gateway",
@@ -117,5 +120,23 @@ def create_app(gateway: DecisionGateway | None = None) -> FastAPI:
     ) -> DecisionResponse:
         """Process canonical decision request and return normalized response with probabilities."""
         return await gw.adecide(request, provider_name=provider)
+
+    @app.get("/v1/telemetry/summary", summary="Telemetry summary")
+    async def get_telemetry_summary() -> dict[str, Any]:
+        """Retrieve aggregated real-time telemetry metrics."""
+        if isinstance(gw.telemetry, InMemoryTelemetrySink):
+            return gw.telemetry.get_summary().model_dump()
+        return {"status": "no_in_memory_telemetry_configured"}
+
+    @app.get("/v1/telemetry/events", summary="Recent decision events")
+    async def get_telemetry_events(
+        limit: int = Query(default=100, ge=1, le=1000),
+        offset: int = Query(default=0, ge=0),
+    ) -> list[dict[str, Any]]:
+        """Retrieve recent decision telemetry events (most recent first)."""
+        if isinstance(gw.telemetry, InMemoryTelemetrySink):
+            events = gw.telemetry.get_events(limit=limit, offset=offset)
+            return [e.model_dump() for e in events]
+        return []
 
     return app

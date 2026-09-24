@@ -190,7 +190,7 @@ Once running:
 - **OpenAPI Schema:** `http://localhost:8000/openapi.json`
 - **Health Check:** `GET http://localhost:8000/health`
 - **Provider Status:** `GET http://localhost:8000/v1/providers`
-- **Submit Decision:** `POST http://localhost:8000/v1/decisions`
+- **Submit Decision:** `POST http://localhost:8000/v1/decisions` (uses default provider, or override with `?provider=jev`, `?provider=laya`, `?provider=mock`)
 
 #### Querying from Any Agent (cURL Example)
 
@@ -224,6 +224,21 @@ curl -X POST http://localhost:8000/v1/decisions \
 uv run jevlaya bench --provider mock
 ```
 
+#### Run Model Calibration via CLI
+
+```bash
+uv run jevlaya calibrate --provider mock
+```
+
+#### Run Gateway Server with Telemetry Logging
+
+```bash
+uv run jevlaya serve --provider mock --telemetry-file ./telemetry.jsonl
+```
+
+Telemetry endpoints:
+- `GET /v1/telemetry/summary`: Aggregated real-time metrics (P50/P95 latency, fallback rate, error rate, costs).
+- `GET /v1/telemetry/events`: Recent decision telemetry events with sanitized credentials.
 
 ---
 
@@ -252,7 +267,7 @@ bun install
 ### Running Tests
 
 ```bash
-# Run Python test suite (61 tests)
+# Run Python test suite (91 tests)
 uv run pytest
 
 # Run Ruff linter
@@ -282,12 +297,13 @@ Provider-specific behavior must remain isolated in adapters.
 
 ## Status
 
-**Tasks 001–005 Completed:**
+**Tasks 001–006 Completed:**
 - Core Protocol & Error Hierarchy (`specs/jevlaya-v0.1.md`)
 - Decision Gateway with Dependency Injection & Latency tracking
 - Laya Adapter (`convaiinnovations/laya`)
 - Jev Adapter (`typesafe/jev-1.13` via OpenRouter)
 - DecisionBench runner with ECE, Brier, accuracy, throughput, and cost metrics
+- Calibration (Temperature Scaling & Platt) & Decision Telemetry/Observability Sinks
 
 ## Sources
 

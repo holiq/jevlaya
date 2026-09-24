@@ -10,6 +10,16 @@ from jevlaya.bench import (
     MetricResult,
     get_sample_dataset,
 )
+from jevlaya.calibration import (
+    BaseCalibrator,
+    CalibrationReport,
+    Calibrator,
+    ConfidenceScalingCalibrator,
+    PlattCalibrator,
+    TemperatureScalingCalibrator,
+    fit_from_provider_and_dataset,
+    fit_temperature_scaling,
+)
 from jevlaya.errors import (
     InvalidRequest,
     JevlayaError,
@@ -45,6 +55,15 @@ from jevlaya.providers import (
     MockProvider,
 )
 from jevlaya.routing import PolicyRouter, RoutingMetadata, RoutingPolicy
+from jevlaya.telemetry import (
+    CallbackTelemetrySink,
+    CompositeTelemetrySink,
+    DecisionEvent,
+    InMemoryTelemetrySink,
+    JsonLinesTelemetrySink,
+    TelemetrySink,
+    TelemetrySummary,
+)
 
 
 def create_app(*args: Any, **kwargs: Any) -> Any:
@@ -83,6 +102,23 @@ __all__ = [
     "PolicyRouter",
     "RoutingPolicy",
     "RoutingMetadata",
+    # Calibration
+    "Calibrator",
+    "BaseCalibrator",
+    "TemperatureScalingCalibrator",
+    "PlattCalibrator",
+    "ConfidenceScalingCalibrator",
+    "CalibrationReport",
+    "fit_temperature_scaling",
+    "fit_from_provider_and_dataset",
+    # Telemetry
+    "DecisionEvent",
+    "TelemetrySink",
+    "InMemoryTelemetrySink",
+    "JsonLinesTelemetrySink",
+    "CallbackTelemetrySink",
+    "CompositeTelemetrySink",
+    "TelemetrySummary",
     # Errors
     "JevlayaError",
     "InvalidRequest",

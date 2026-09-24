@@ -17,6 +17,8 @@ from jevlaya.errors import (
 )
 from jevlaya.protocol.models import DecisionRequest, DecisionResponse
 from jevlaya.providers.base import DecisionProvider
+from jevlaya.telemetry.events import DecisionEvent
+from jevlaya.telemetry.sinks import TelemetrySink
 
 
 class DecisionGateway:
@@ -27,6 +29,7 @@ class DecisionGateway:
         provider: DecisionProvider | None = None,
         providers: dict[str, DecisionProvider] | None = None,
         default_provider: str | None = None,
+        telemetry: TelemetrySink | None = None,
     ) -> None:
         self.providers: dict[str, DecisionProvider] = dict(providers or {})
 
@@ -36,6 +39,7 @@ class DecisionGateway:
                 default_provider = provider.name
 
         self.default_provider = default_provider
+        self.telemetry = telemetry
 
     def register_provider(self, provider: DecisionProvider, set_default: bool = False) -> None:
         """Register a new provider adapter."""
@@ -111,15 +115,36 @@ class DecisionGateway:
         start_time = time.perf_counter()
         try:
             raw_response = provider.decide(valid_request)
-        except JevlayaError:
-            raise
         except Exception as exc:
+            elapsed_ms = (time.perf_counter() - start_time) * 1000.0
+            if self.telemetry:
+                self.telemetry.record(
+                    DecisionEvent.from_error(
+                        provider=provider.name,
+                        error=exc,
+                        elapsed_ms=elapsed_ms,
+                        request=valid_request,
+                    )
+                )
+            if isinstance(exc, JevlayaError):
+                raise
             raise ProviderResponseError(
                 f"Provider '{provider.name}' encountered an unexpected error: {exc}"
             ) from exc
 
         elapsed_ms = (time.perf_counter() - start_time) * 1000.0
-        return self._normalize_response(raw_response, elapsed_ms, request_id=valid_request.id)
+        normalized = self._normalize_response(raw_response, elapsed_ms, request_id=valid_request.id)
+
+        if self.telemetry:
+            self.telemetry.record(
+                DecisionEvent.from_response(
+                    response=normalized,
+                    request=valid_request,
+                    elapsed_ms=elapsed_ms,
+                )
+            )
+
+        return normalized
 
     async def adecide(
         self,
@@ -136,12 +161,33 @@ class DecisionGateway:
                 raw_response = await provider.adecide(valid_request)
             else:
                 raw_response = await asyncio.to_thread(provider.decide, valid_request)
-        except JevlayaError:
-            raise
         except Exception as exc:
+            elapsed_ms = (time.perf_counter() - start_time) * 1000.0
+            if self.telemetry:
+                self.telemetry.record(
+                    DecisionEvent.from_error(
+                        provider=provider.name,
+                        error=exc,
+                        elapsed_ms=elapsed_ms,
+                        request=valid_request,
+                    )
+                )
+            if isinstance(exc, JevlayaError):
+                raise
             raise ProviderResponseError(
                 f"Provider '{provider.name}' encountered an unexpected error: {exc}"
             ) from exc
 
         elapsed_ms = (time.perf_counter() - start_time) * 1000.0
-        return self._normalize_response(raw_response, elapsed_ms, request_id=valid_request.id)
+        normalized = self._normalize_response(raw_response, elapsed_ms, request_id=valid_request.id)
+
+        if self.telemetry:
+            self.telemetry.record(
+                DecisionEvent.from_response(
+                    response=normalized,
+                    request=valid_request,
+                    elapsed_ms=elapsed_ms,
+                )
+            )
+
+        return normalized

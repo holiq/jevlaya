@@ -294,15 +294,15 @@ server = [
 
 [package.metadata]
 requires-dist = [
-    { name = "fastapi", marker = "extra == 'server'", specifier = ">=0.115.0" },
-    { name = "httpx", marker = "extra == 'server'", specifier = ">=0.28.0" },
-    { name = "laya", marker = "extra == 'laya'", specifier = ">=0.3.6" },
+    { name = "fastapi", marker = "extra == 'server'", specifier = ">=0.141.1" },
+    { name = "httpx", marker = "extra == 'server'", specifier = ">=0.28.1" },
+    { name = "laya", marker = "extra == 'laya'", specifier = ">=0.3.11" },
     { name = "pydantic", specifier = ">=2.13.5" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=9.1.1" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=1.4.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.16.8" },
     { name = "typing-extensions", specifier = ">=4.16.0" },
-    { name = "uvicorn", marker = "extra == 'server'", specifier = ">=0.34.0" },
+    { name = "uvicorn", marker = "extra == 'server'", specifier = ">=0.53.0" },
 ]
 provides-extras = ["dev", "laya", "server"]
 
@@ -320,7 +320,7 @@ wheels = [
 
 [[package]]
 name = "laya"
-version = "0.3.6"
+version = "0.3.11"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "huggingface-hub" },
@@ -329,9 +329,9 @@ dependencies = [
     { name = "torch" },
     { name = "transformers" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/1a/38/0fb6489d93c170f894be6a505404ae8ab74c758d013a7b06b6b1d684b81b/laya-0.3.6.tar.gz", hash = "sha256:ebf3345593e200dc11f09d74aa856252726054c3aed3e7898099b654b6b26be7", size = 72536, upload-time = "2026-09-22T20:43:17.132Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/69/04/0abe8a5986500e9385f43d795a62910dab63628390250c73fea5e1e98822/laya-0.3.11.tar.gz", hash = "sha256:f484efeb339a39f68fe44c650947aa90238bfb84d9ec5450b157b51fb2fa0794", size = 238537, upload-time = "2026-09-23T18:06:50.05Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d4/bb/d7b1653432964860c46f2a1cffc58ed960dae2fc6720d2625fb4f74e53d9/laya-0.3.6-py3-none-any.whl", hash = "sha256:e3b3aa7bb65c1a154db1b2718e3a7f5ecb1a506800933b519d640f438c5d8ad5", size = 43245, upload-time = "2026-09-22T20:43:15.729Z" },
+    { url = "https://files.pythonhosted.org/packages/6d/57/1090909277c07555fd75a8e9c2fcd4d1952372cfbff2a01b081450a63f21/laya-0.3.11-py3-none-any.whl", hash = "sha256:1ee717dd05a742135869383af9b66b20d5c5f62e62d9e57e3fcf84203ea1e443", size = 106531, upload-time = "2026-09-23T18:06:48.166Z" },
 ]
 
 [[package]]

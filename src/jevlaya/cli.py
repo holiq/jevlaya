@@ -10,11 +10,18 @@ from collections.abc import Sequence
 from jevlaya import __version__
 from jevlaya.bench.runner import DecisionBench
 from jevlaya.bench.sample_data import get_sample_dataset
+from jevlaya.calibration.fitter import fit_from_provider_and_dataset
 from jevlaya.gateway.gateway import DecisionGateway
 from jevlaya.providers.base import DecisionProvider
 from jevlaya.providers.jev import JevAdapter
 from jevlaya.providers.laya import LayaAdapter
 from jevlaya.providers.mock import MockProvider
+from jevlaya.telemetry.sinks import (
+    CompositeTelemetrySink,
+    InMemoryTelemetrySink,
+    JsonLinesTelemetrySink,
+    TelemetrySink,
+)
 
 
 def _build_provider(
@@ -33,6 +40,18 @@ def _build_provider(
     raise ValueError(f"Unknown provider '{name}'. Options: mock, laya, jev")
 
 
+def _build_all_providers(
+    laya_variant: str | None = None,
+    laya_model: str | None = None,
+) -> dict[str, DecisionProvider]:
+    """Instantiate all available standard providers (mock, jev, laya)."""
+    return {
+        "mock": MockProvider(),
+        "jev": JevAdapter(),
+        "laya": LayaAdapter(variant=laya_variant, model_name=laya_model),  # type: ignore[arg-type]
+    }
+
+
 def run_serve(args: argparse.Namespace) -> int:
     """Start the self-hosted Decision Gateway HTTP server."""
     try:
@@ -48,27 +67,50 @@ def run_serve(args: argparse.Namespace) -> int:
         return 1
 
     try:
-        provider = _build_provider(
-            args.provider,
+        providers = _build_all_providers(
             laya_variant=getattr(args, "laya_variant", None),
             laya_model=getattr(args, "laya_model", None),
         )
     except Exception as exc:
-        print(f"Error configuring provider: {exc}", file=sys.stderr)
+        print(f"Error configuring providers: {exc}", file=sys.stderr)
         return 1
 
-    gateway = DecisionGateway(provider=provider)
+    default_provider = args.provider.strip().lower()
+    if default_provider not in providers:
+        print(
+            f"Error: Unknown default provider '{args.provider}'. "
+            f"Options: {list(providers.keys())}",
+            file=sys.stderr,
+        )
+        return 1
+
+    mem_sink = InMemoryTelemetrySink()
+    telemetry: TelemetrySink
+    if getattr(args, "telemetry_file", None):
+        file_sink = JsonLinesTelemetrySink(args.telemetry_file)
+        telemetry = CompositeTelemetrySink([mem_sink, file_sink])
+    else:
+        telemetry = mem_sink
+
+    gateway = DecisionGateway(
+        providers=providers,
+        default_provider=default_provider,
+        telemetry=telemetry,
+    )
     app = create_app(gateway=gateway)
 
+    laya_prov = providers.get("laya")
     variant_info = (
-        f", Variant: {getattr(provider, 'variant', 'n/a')}"
-        if args.provider == "laya"
+        f", Laya Variant: {getattr(laya_prov, 'variant', 'n/a')}"
+        if laya_prov is not None
         else ""
     )
+    prov_list = ", ".join(providers.keys())
     print(
         f"Starting Jevlaya Decision Gateway v{__version__} "
-        f"on http://{args.host}:{args.port} (Provider: {provider.name}{variant_info})"
+        f"on http://{args.host}:{args.port} (Default: {default_provider}{variant_info})"
     )
+    print(f"Active Providers: [{prov_list}] (Selectable via ?provider=<name>)")
     print(f"Interactive Swagger documentation available at http://{args.host}:{args.port}/docs")
 
     uvicorn.run(app, host=args.host, port=args.port, reload=args.reload)
@@ -98,6 +140,35 @@ def run_bench(args: argparse.Namespace) -> int:
         return 0
     except Exception as exc:
         print(f"Benchmark execution failed: {exc}", file=sys.stderr)
+        return 1
+
+
+def run_calibrate(args: argparse.Namespace) -> int:
+    """Execute calibration fitting against a provider and dataset."""
+    try:
+        provider = _build_provider(
+            args.provider,
+            laya_variant=getattr(args, "laya_variant", None),
+            laya_model=getattr(args, "laya_model", None),
+        )
+    except Exception as exc:
+        print(f"Error configuring provider: {exc}", file=sys.stderr)
+        return 1
+
+    dataset = get_sample_dataset()
+    print(f"Fitting calibration parameters for provider '{provider.name}'...")
+    examples = [(ex.request, ex.ground_truth) for ex in dataset.examples]
+
+    try:
+        reports = fit_from_provider_and_dataset(provider, examples, method=args.method)
+        print()
+        print(f"# Jevlaya Calibration Results ({provider.name})\n")
+        for q_id, rep in reports.items():
+            print(f"## Question: `{q_id}`")
+            print(rep.summary_markdown())
+        return 0
+    except Exception as exc:
+        print(f"Calibration fitting failed: {exc}", file=sys.stderr)
         return 1
 
 
@@ -135,7 +206,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     serve_parser.add_argument(
         "--provider",
         default=os.environ.get("JEVLAYA_PROVIDER", "mock"),
-        help="Decision engine to serve: mock, laya, jev (default: mock, env: JEVLAYA_PROVIDER)",
+        help="Default provider: mock, laya, jev. All are registered & selectable via ?provider=",
     )
     serve_parser.add_argument(
         "--laya-variant",
@@ -147,6 +218,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--laya-model",
         default=os.environ.get("LAYA_MODEL", None),
         help="Custom Laya HuggingFace model repo or local path (env: LAYA_MODEL)",
+    )
+    serve_parser.add_argument(
+        "--telemetry-file",
+        default=os.environ.get("JEVLAYA_TELEMETRY_FILE", None),
+        help="Path to JSONL file to persist decision events (env: JEVLAYA_TELEMETRY_FILE)",
     )
     serve_parser.add_argument(
         "--reload",
@@ -182,12 +258,42 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="Number of warmup samples before recording metrics (default: 0)",
     )
 
+    # --- Command: calibrate ---
+    calibrate_parser = subparsers.add_parser(
+        "calibrate",
+        help="Fit model calibration parameters (temperature scaling) on sample or evaluation data",
+    )
+    calibrate_parser.add_argument(
+        "--provider",
+        default="mock",
+        help="Provider to calibrate: mock, laya, jev (default: mock)",
+    )
+    calibrate_parser.add_argument(
+        "--method",
+        choices=["temperature"],
+        default="temperature",
+        help="Calibration fitting method (default: temperature)",
+    )
+    calibrate_parser.add_argument(
+        "--laya-variant",
+        choices=["base", "multilingual", "typed"],
+        default=os.environ.get("LAYA_VARIANT", "base"),
+        help="Laya model variant: base, multilingual, typed (default: base, env: LAYA_VARIANT)",
+    )
+    calibrate_parser.add_argument(
+        "--laya-model",
+        default=os.environ.get("LAYA_MODEL", None),
+        help="Custom Laya HuggingFace model repo or local path (env: LAYA_MODEL)",
+    )
+
     args = parser.parse_args(argv)
 
     if args.command == "serve":
         return run_serve(args)
     if args.command == "bench":
         return run_bench(args)
+    if args.command == "calibrate":
+        return run_calibrate(args)
 
     parser.print_help()
     return 0
